@@ -1,6 +1,10 @@
 package com.project_client;
 
+import com.project_client.general.RequestDTO;
 import com.project_client.login.LoginResponseDTO;
+import com.project_client.menu.MenuRequestDTO;
+import com.project_client.menu.MenuRequestType;
+import com.project_client.user.UserType;
 
 import java.io.*;
 import java.net.Socket;
@@ -39,14 +43,16 @@ public class Main {
                     switch (code){
                         case 0x01 -> {
 
-                            System.out.println("Login Success. Type: ");
+                            System.out.print("Login Success. Type: ");
 
                             data = new byte[Utils.bytesToInt(header, 2)];
-                            System.out.println(data.length);
                             dis.readFully(data);
 
                             LoginResponseDTO loginResponseDTO = new LoginResponseDTO(data);
                             System.out.println(loginResponseDTO.getUserType());
+
+                            if(loginResponseDTO.getUserType() == UserType.ADMIN)
+                                selectAdminMenu(dos);
                             //inputMenu .....
                         }
                         case 0x02 ->{
@@ -91,6 +97,51 @@ public class Main {
         dos.write(idBytes);
         dos.write(pwBytes);
 
+        dos.flush();
+    }
+
+    private static void selectAdminMenu(DataOutputStream dos) throws IOException {
+
+
+        String menu = """
+            ================================================
+            1) 메뉴 정보 등록 및 수정
+            2) 메뉴 이미지 업로드
+            3) 식당별 메뉴 가격 책정
+            4) 쿠폰 정책 관리
+            5) 결제 처리 시스템
+            6) 전체 주문 및 결제 내역 통합 조회
+            7) 매출 현황 및 식당별 이용 통계 분석
+            0) 프로그램 종료
+            ================================================
+            >> 원하시는 번호를 입력하세요: """;
+
+        System.out.print(menu);
+        int choice = sc.nextInt();
+
+        RequestDTO requestDTO = null;
+        switch (choice) {
+            case 1 -> {
+
+                requestDTO = MenuRequestDTO.builder().requestType(MenuRequestType.REST_REQ).build();
+            }
+            case 2 -> {
+            }
+            case 3 -> {
+            }
+            case 4 -> {
+            }
+            case 5 -> {
+            }
+            case 6 -> {
+            }
+            case 7 -> {
+            }
+            case 0 -> {
+            }
+        }
+
+        dos.write(requestDTO.toBytes());
         dos.flush();
     }
 }
