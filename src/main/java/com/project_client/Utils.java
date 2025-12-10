@@ -12,6 +12,16 @@ public class Utils {
         };
     }
 
+    public static int intToBytes(int data, byte[] dest, int offset) {
+
+        dest[offset++] = (byte) ((data >> 24) & 0xff);
+        dest[offset++] = (byte) ((data >> 16) & 0xff);
+        dest[offset++] = (byte) ((data >> 8) & 0xff);
+        dest[offset++] = (byte) ((data >> 0) & 0xff);
+
+        return offset;
+    }
+
     public static int bytesToInt(byte[] data, int start) {
         return (int) (
                 (0xff & data[start]) << 24 |
@@ -64,5 +74,25 @@ public class Utils {
     public static String readString(byte[] body, int cursor) {
         int len = Utils.bytesToInt(body, cursor);
         return new String(body, cursor + 4, len, StandardCharsets.UTF_8);
+    }
+
+    public static int longToBytes(long data, byte[] dest, int offset) {
+        dest[offset++] = (byte)((data >> 56) & 0xff);
+        dest[offset++] = (byte)((data >> 48) & 0xff);
+        dest[offset++] = (byte)((data >> 40) & 0xff);
+        dest[offset++] = (byte)((data >> 32) & 0xff);
+        dest[offset++] = (byte)((data >> 24) & 0xff);
+        dest[offset++] = (byte)((data >> 16) & 0xff);
+        dest[offset++] = (byte)((data >> 8) & 0xff);
+        dest[offset++] = (byte)((data >> 0) & 0xff);
+        return offset;
+    }
+
+    public static int shortToBytes(short data, byte[] dest, int offset) {
+
+        dest[offset++] = (byte)((data >> 8) & 0xff);
+        dest[offset++] = (byte)((data >> 0) & 0xff);
+
+        return offset;
     }
 }
