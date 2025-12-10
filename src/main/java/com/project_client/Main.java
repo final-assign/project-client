@@ -243,9 +243,9 @@ public class Main {
         dos.writeByte(HeaderType.REQUEST.getValue());
         dos.writeByte(0x01); // Login Request Code
         dos.write(Utils.intToBytes(bodySize));
-        dos.writeShort(idBytes.length);
+        dos.writeShort((short)(idBytes.length));
+        dos.writeShort((short)(pwBytes.length));
         dos.write(idBytes);
-        dos.writeShort(pwBytes.length);
         dos.write(pwBytes);
         dos.flush();
     }

@@ -3,6 +3,7 @@ package com.project_client.restaurant;
 import com.project_client.Utils;
 import lombok.Getter;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 @Getter
@@ -20,11 +21,11 @@ public class RestaurantListResponseDTO {
             offset += 8;
 
             String nameStr = Utils.readString(data, offset);
-            offset += 4 + nameStr.getBytes().length;
+            offset += 4 + nameStr.getBytes(StandardCharsets.UTF_8).length;
             RestaurantName name = RestaurantName.valueOf(nameStr);
 
             String description = Utils.readString(data, offset);
-            offset += 4 + description.getBytes().length;
+            offset += 4 + description.getBytes(StandardCharsets.UTF_8).length;
 
             Restaurant restaurant = new Restaurant(id, name, description, new ArrayList<>());
 
@@ -39,16 +40,16 @@ public class RestaurantListResponseDTO {
                 offset += 8;
 
                 String startAt = Utils.readString(data, offset);
-                offset += 4 + startAt.getBytes().length;
+                offset += 4 + startAt.getBytes(StandardCharsets.UTF_8).length;
 
                 String endAt = Utils.readString(data, offset);
-                offset += 4 + endAt.getBytes().length;
+                offset += 4 + endAt.getBytes(StandardCharsets.UTF_8).length;
 
                 long menuTypeId = Utils.bytesToLong(data, offset);
                 offset += 8;
 
                 String menuTypeName = Utils.readString(data, offset);
-                offset += 4 + menuTypeName.getBytes().length;
+                offset += 4 + menuTypeName.getBytes(StandardCharsets.UTF_8).length;
 
                 MenuType menuType = new MenuType(menuTypeId, menuTypeName);
                 RestaurantOperatingInfo operatingInfo = new RestaurantOperatingInfo(infoId, restaurantId, startAt, endAt, menuType);
