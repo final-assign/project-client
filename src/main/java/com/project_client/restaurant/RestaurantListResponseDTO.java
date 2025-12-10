@@ -3,7 +3,6 @@ package com.project_client.restaurant;
 import com.project_client.Utils;
 import lombok.Getter;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 @Getter
@@ -20,12 +19,14 @@ public class RestaurantListResponseDTO {
             long id = Utils.bytesToLong(data, offset);
             offset += 8;
 
+            int nameLen = Utils.bytesToInt(data, offset);
             String nameStr = Utils.readString(data, offset);
-            offset += 4 + nameStr.getBytes(StandardCharsets.UTF_8).length;
+            offset += 4 + nameLen;
             RestaurantName name = RestaurantName.valueOf(nameStr);
 
+            int descLen = Utils.bytesToInt(data, offset);
             String description = Utils.readString(data, offset);
-            offset += 4 + description.getBytes(StandardCharsets.UTF_8).length;
+            offset += 4 + descLen;
 
             Restaurant restaurant = new Restaurant(id, name, description, new ArrayList<>());
 
@@ -39,17 +40,20 @@ public class RestaurantListResponseDTO {
                 long restaurantId = Utils.bytesToLong(data, offset);
                 offset += 8;
 
+                int startLen = Utils.bytesToInt(data, offset);
                 String startAt = Utils.readString(data, offset);
-                offset += 4 + startAt.getBytes(StandardCharsets.UTF_8).length;
+                offset += 4 + startLen;
 
+                int endLen = Utils.bytesToInt(data, offset);
                 String endAt = Utils.readString(data, offset);
-                offset += 4 + endAt.getBytes(StandardCharsets.UTF_8).length;
+                offset += 4 + endLen;
 
                 long menuTypeId = Utils.bytesToLong(data, offset);
                 offset += 8;
 
+                int menuTypeLen = Utils.bytesToInt(data, offset);
                 String menuTypeName = Utils.readString(data, offset);
-                offset += 4 + menuTypeName.getBytes(StandardCharsets.UTF_8).length;
+                offset += 4 + menuTypeLen;
 
                 MenuType menuType = new MenuType(menuTypeId, menuTypeName);
                 RestaurantOperatingInfo operatingInfo = new RestaurantOperatingInfo(infoId, restaurantId, startAt, endAt, menuType);
