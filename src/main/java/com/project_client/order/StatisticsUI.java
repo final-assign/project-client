@@ -41,7 +41,7 @@ private static void StatisticsUI(DataInputStream dis, DataOutputStream dos) {
             }
 
             dos.writeByte(PacketType.REQUEST.getValue());
-            dos.writeByte((byte) 0x81);  // 식당 아이디 조회
+            dos.writeByte((byte) 0x81);  // 식당 아이디 조회 - 식당 조회
             dos.write(Utils.intToBytes(0));
             dos.flush();
 
@@ -75,7 +75,7 @@ private static void StatisticsUI(DataInputStream dis, DataOutputStream dos) {
             restaurantSelectionMenu = false;
         }
 
-        // ===== 2단계: 통계 항목 선택 메뉴 =====
+        // ===== 통계 항목 선택 메뉴 =====
         boolean statisticsMenu = true;
         while (statisticsMenu) {
             System.out.println("조회할 통계 항목을 선택하세요:");
@@ -171,7 +171,7 @@ private static void StatisticsUI(DataInputStream dis, DataOutputStream dos) {
             statisticsMenu = false;
         }
 
-        // ===== 3단계: 다음 행동 선택 =====
+        // ===== 다음 행동 선택 =====
         boolean nextActionMenu = true;
         while (nextActionMenu) {
             System.out.println("\n===== 다음 행동 선택 =====");
