@@ -1,18 +1,18 @@
 package com.project_client.order;
 
 import com.project_client.Utils;
+import com.project_client.general.RequestDTO;
+import lombok.Builder;
+import lombok.RequiredArgsConstructor;
+
 import java.nio.charset.StandardCharsets;
 
-public class OrderByRestaurantRequestDTO {
+@Builder
+@RequiredArgsConstructor
+public class OrderByRestaurantRequestDTO implements RequestDTO {
     private final long restaurantId;
     private final String startAt;
     private final String endAt;
-
-    public OrderByRestaurantRequestDTO(long restaurantId, String startAt, String endAt) {
-        this.restaurantId = restaurantId;
-        this.startAt = startAt;
-        this.endAt = endAt;
-    }
 
     public byte[] toBytes() {
         // 문자열 변환
@@ -25,8 +25,13 @@ public class OrderByRestaurantRequestDTO {
         // endAt : 길이 4 + 데이터
         int bodySize = 12 + (4 + startBytes.length) + (4 + endBytes.length);
 
-        byte[] data = new byte[bodySize];
-        int cursor = 0;
+        byte[] data = new byte[bodySize + 6];
+
+        data[0] = 0x01; //req
+        data[1] = (byte) 0xA2;
+        int cursor = 2;
+
+        cursor = Utils.intToBytes(bodySize, data, cursor);
 
         // 식당 ID 쓰기
         // - 길이 (8)
