@@ -4,7 +4,6 @@ import com.project_client.coupon.AllCouponRequestDTO;
 import com.project_client.coupon.AllCouponResponseDTO;
 import com.project_client.general.HeaderType;
 import com.project_client.login.LoginResponseDTO;
-import com.project_client.menu.MenuRegisterRequestDTO;
 import com.project_client.menu.MenuResponseDTO;
 import com.project_client.order.OrderByRestaurantRequestDTO;
 import com.project_client.order.OrderByUserRequestDTO;
@@ -12,8 +11,6 @@ import com.project_client.order.OrderByUserResponseDTO;
 import com.project_client.order.OrderDetail;
 import com.project_client.payment.StaffPaymentUI;
 import com.project_client.payment.StudentPaymentUI;
-import com.project_client.restaurant.Restaurant;
-import com.project_client.restaurant.RestaurantOperatingInfo;
 import com.project_client.user.UserType;
 
 import java.io.*;
@@ -22,7 +19,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Scanner;
 
