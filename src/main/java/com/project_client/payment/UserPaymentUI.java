@@ -1,22 +1,21 @@
 package com.project_client.payment;
 
 import com.project_client.Utils;
-import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.util.Scanner;
 
 
-@NoArgsConstructor
+@AllArgsConstructor
 public class UserPaymentUI {
     public static void processPayment(DataInputStream dis, DataOutputStream dos, Long selectedMenuId, int menuPrice) {
-        Scanner sc = new Scanner(System.in);
-
         try {
             // ===== 결제방법 선택 =====
             boolean paymentChoice = true;
             while (paymentChoice) {
+                Scanner sc = new Scanner(System.in);
                 System.out.println("===== 결제방법 선택 =====");
                 System.out.println("1. 카드결제");
                 System.out.println("2. 쿠폰결제");
@@ -113,6 +112,7 @@ public class UserPaymentUI {
             dos.flush();
 
             byte[] header = new byte[6];
+            System.out.println("lock");
             dis.readFully(header);
             byte code = header[1];
             int bodyLength = Utils.bytesToInt(header, 2);
@@ -130,6 +130,7 @@ public class UserPaymentUI {
                 return false;
 
             System.out.println("선택한 메뉴의 현재 쿠폰 개수 : " + responseDTO.getCount());
+
             PaymentCouponDecreaseRequestDTO decreaseRequestDTO = PaymentCouponDecreaseRequestDTO.builder()
                     .couponId(responseDTO.getCouponId())
                     .build();
@@ -139,9 +140,14 @@ public class UserPaymentUI {
 
             dis.readFully(header);
             code = header[1];
-            body = new byte[Utils.bytesToInt(header, 2)];
-            dis.readFully(body);
-            PaymentResponseDTO finalResponseDTO = new PaymentResponseDTO(code, body);
+            int sndBodyLen = Utils.bytesToInt(header, 2);
+            byte[] sndBody = null;
+
+            if (bodyLength > 0) {
+                sndBody = new byte[sndBodyLen];
+                dis.readFully(sndBody);
+            }
+            PaymentResponseDTO finalResponseDTO = new PaymentResponseDTO(code, sndBody);
 
             return finalResponseDTO.isSuccess();
         } catch (Exception e) {
