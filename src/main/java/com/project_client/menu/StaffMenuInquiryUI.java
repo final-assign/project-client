@@ -328,20 +328,3 @@ private static void showUsageHistory(DataInputStream dis, DataOutputStream dos) 
     // HistoryUI.showHistory(dis, dos);
     System.out.println("\n[이용 내역 화면으로 이동합니다...]");
 }
-
-// PacketType Enum (없다면 추가)
-enum PacketType {
-    REQUEST((byte) 0x01),
-    RESPONSE((byte) 0x02),
-    RESULT((byte) 0x03);
-
-    private final byte value;
-
-    PacketType(byte value) {
-        this.value = value;
-    }
-
-    public byte getValue() {
-        return value;
-    }
-}
