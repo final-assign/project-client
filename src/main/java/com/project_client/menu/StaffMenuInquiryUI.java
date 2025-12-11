@@ -8,9 +8,9 @@ import java.io.DataOutputStream;
 
 import static com.project_client.Main.sc;
 
-public class StudentMenuUI {
+public class StaffMenuInquiryUI {
 
-    private static void StudentMenuInquiryUI(DataInputStream dis, DataOutputStream dos) {
+    private static void StafftMenuInquiryUI(DataInputStream dis, DataOutputStream dos) {
         try {
             long selectedRestaurantId = 0;
 
@@ -19,9 +19,8 @@ public class StudentMenuUI {
             while (restaurantSelection) {
                 System.out.println("===== 식당 선택 =====");
                 System.out.println("식당을 선택하세요:");
-                System.out.println("1. 학생식당");
-                System.out.println("2. 교직원식당");
-                System.out.println("3. 분식당");
+                System.out.println("1. 교직원식당");
+                System.out.println("2. 분식당");
                 System.out.print("번호 입력: ");
 
                 int restaurantChoice;
@@ -34,9 +33,8 @@ public class StudentMenuUI {
 
                 // 식당 ID 설정
                 switch (restaurantChoice) {
-                    case 1 -> selectedRestaurantId = 1; // 학생식당 ID
-                    case 2 -> selectedRestaurantId = 2; // 교직원식당 ID
-                    case 3 -> selectedRestaurantId = 3; // 분식당 ID
+                    case 1 -> selectedRestaurantId = 2; // 교직원식당 ID
+                    case 2 -> selectedRestaurantId = 3; // 분식당 ID
                     default -> {
                         System.out.println("잘못된 선택입니다.");
                         continue;
@@ -44,10 +42,10 @@ public class StudentMenuUI {
                 }
 
                 // 선택한 식당에 대한 처리
-                if (restaurantChoice == 1 || restaurantChoice == 2) {
-                    // 학생식당 또는 교직원식당 처리
+                if (restaurantChoice == 1) {
+                    // 교직원식당 처리
                     handleSimpleRestaurant(dis, dos, selectedRestaurantId, restaurantChoice);
-                } else if (restaurantChoice == 3) {
+                } else if (restaurantChoice == 2) {
                     // 분식당 처리
                     handleSnackRestaurant(dis, dos, selectedRestaurantId);
                 }
@@ -76,7 +74,7 @@ public class StudentMenuUI {
                     return;
                 } else if (nextChoice == 2) {
                     // 처음 식당 선택으로 돌아가기
-                    StudentMenuInquiryUI(dis, dos);
+                    StaffMenuInquiryUI(dis, dos);
                     return;
                 } else {
                     System.out.println("잘못된 선택입니다.");
@@ -89,9 +87,8 @@ public class StudentMenuUI {
         }
     }
 
-    private static void handleSimpleRestaurant(DataInputStream dis, DataOutputStream dos,
+    private static void handleStaffRestaurant(DataInputStream dis, DataOutputStream dos,
                                                long restaurantId, int restaurantChoice) throws Exception {
-        String restaurantName = (restaurantChoice == 1) ? "학생식당" : "교직원식당";
 
         // 프로토콜: 0x01(요청) + 0x12(식당별 메뉴 요청) + Length + Body(식당 ID)
         byte[] restIdBytes = Utils.longToBytes(restaurantId);
@@ -133,7 +130,7 @@ public class StudentMenuUI {
         // 메뉴 정보 출력
         System.out.println("\n===== 오늘의 " + restaurantName + " =====");
         System.out.println("메뉴명: " + menuDTO.getMenuName()); // 서버 DTO에서 메뉴명 가져오기
-        System.out.println("가격: " + menuDTO.getstudentPrice() + "원");
+        System.out.println("가격: " + menuDTO.getstandardPrice() + "원");
 
         // 메뉴 이미지 다운로드 - 프로토콜 0x01 + 0x21
         downloadMenuImage(dis, dos, menuDTO.getMenuId()); // 서버 DTO에서 메뉴 ID 가져오기
