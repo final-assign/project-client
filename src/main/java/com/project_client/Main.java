@@ -5,23 +5,15 @@ import com.project_client.coupon.AllCouponResponseDTO;
 import com.project_client.general.HeaderType;
 import com.project_client.login.LoginResponseDTO;
 import com.project_client.menu.*;
-import com.project_client.menu.MenuResponseDTO;
 import com.project_client.order.OrderByRestaurantRequestDTO;
-import com.project_client.restaurant.Restaurant;
-import com.project_client.restaurant.RestaurantListResponseDTO;
-import com.project_client.restaurant.RestaurantName;
-import com.project_client.restaurant.RestaurantOperatingInfo;
+import com.project_client.restaurant.*;
 import com.project_client.order.OrderByUserRequestDTO;
 import com.project_client.order.OrderByUserResponseDTO;
 import com.project_client.order.OrderDetail;
-import com.project_client.payment.StaffPaymentUI;
-import com.project_client.payment.StudentPaymentUI;
+import com.project_client.payment.UserPaymentUI;
 import com.project_client.user.UserType;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -29,15 +21,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.Scanner;
 
+import static com.project_client.Utils.intToBytes;
 import static com.project_client.Utils.readString;
 
 public class Main {
 
-    static{
+    static {
 
         try {
             System.setOut(new java.io.PrintStream(System.out, true, StandardCharsets.UTF_8));
@@ -45,7 +37,8 @@ public class Main {
             e.printStackTrace();
         }
     }
-    private final static String HOST = "localhost";
+
+    private final static String HOST = "172.30.112.118";
     private static final int PORT = 5000;
     private static final Scanner sc = new Scanner(System.in);
 
@@ -57,6 +50,7 @@ public class Main {
             attemptLogin(dos);
 
             byte[] header = new byte[6];
+
             while (true) {
                 dis.readFully(header);
                 byte type = header[0];
@@ -85,7 +79,9 @@ public class Main {
 
                 if (loginResponseDTO.getUserType() == UserType.ADMIN) {
                     selectAdminMenu(dis, dos);
-                }
+                } else
+                    selectUserMenu(dis, dos);
+
             }
             case 0x02 -> { // Login Fail
                 System.out.println("Invalid ID or Password");
@@ -319,10 +315,6 @@ public class Main {
         }
     }
 
-    private static void printOrderList(byte[] data) {
-        System.out.println("주문 내역 출력 기능은 여기에 구현됩니다.");
-    }
-
     private static void attemptLogin(DataOutputStream dos) throws IOException {
         System.out.print("아이디를 입력하세요: ");
         String id = sc.nextLine();
@@ -337,14 +329,14 @@ public class Main {
         dos.writeByte(HeaderType.REQUEST.getValue());
         dos.writeByte(0x01); // Login Request Code
         dos.write(Utils.intToBytes(bodySize));
-        dos.writeShort((short)(idBytes.length));
-        dos.writeShort((short)(pwBytes.length));
+        dos.writeShort((short) (idBytes.length));
+        dos.writeShort((short) (pwBytes.length));
         dos.write(idBytes);
         dos.write(pwBytes);
         dos.flush();
     }
 
-    private static void selectUserMenu(DataInputStream dis, DataOutputStream dos, UserType userType) throws IOException {
+    private static void selectUserMenu(DataInputStream dis, DataOutputStream dos) throws IOException {
         while (true) {
             String menu = """
                     ================================================
@@ -361,13 +353,10 @@ public class Main {
                 int choice = Integer.parseInt(sc.nextLine());
                 switch (choice) {
                     case 1 -> {
-                        if (userType.equals(UserType.STAFF))
-                            handleStaffRestaurantShow(dis, dos, userType);
-                        else
-                            handleUserRestaurantShow(dis, dos, userType);
+                        handleUserRestaurantShow(dis, dos);
                     }
                     case 2 -> {
-                        //쿠폰 구매 관련
+
                     }
                     case 3 -> {
                         //유저 잔액 조회 관련 (트랜잭션 쇼잉용)
@@ -386,89 +375,59 @@ public class Main {
         }
     }
 
-    private static void handleUserRestaurantShow(DataInputStream dis, DataOutputStream dos, UserType userType) {
-        boolean restaurantSelection = true;
+    private static void handleUserRestaurantShow(DataInputStream dis, DataOutputStream dos) {
 
         try {
-            while (restaurantSelection) {
-                System.out.println("===== 식당 선택 =====");
-                System.out.println("식당을 선택하세요:");
-                System.out.println("1. 교직원식당");
-                System.out.println("2. 분식당");
-                System.out.println("3. 학식당");
-                System.out.print("번호 입력: ");
+            //요청 반환
+            dos.write(new AvailableRestaurantRequestDTO().toBytes());
+            dos.flush();
 
-                int restaurantChoice = sc.nextInt();
+            byte[] header = new byte[6];
+            dis.readFully(header);
+            byte type = header[0];
+            byte code = header[1];
+            int len = Utils.bytesToInt(header, 2);
 
-                Long selectedRestaurantId = 0L;
-                // 식당 ID 설정
-                switch (restaurantChoice) {
-                    case 1 -> selectedRestaurantId = 2L; // 교직원식당 ID
-                    case 2 -> selectedRestaurantId = 3L;
-                    case 3 -> selectedRestaurantId = 1L;// 분식당 ID
-                    default -> {
-                        System.out.println("잘못된 선택입니다.");
-                        continue;
-                    }
-                }
+            byte[] body = null;
 
-                // 선택한 식당에 대한 처리
-                if (restaurantChoice == 1 || restaurantChoice == 3) {
-                    // 교직원식당, 학식당 처리
-                    handleSimpleRestaurant(dis, dos, selectedRestaurantId, userType);
-                } else
-                    // 분식당 처리
-                    handleSnackRestaurant(dis, dos, selectedRestaurantId, userType);
-
-                restaurantSelection = false;
-
+            if (len > 0) {
+                body = new byte[len];
+                dis.readFully(body);
+            } else {
+                System.out.println(">> 현재 조회된 식당이 없습니다.");
+                return;
             }
-        } catch (NumberFormatException e) {
-            System.out.println("잘못된 숫자 형식입니다. 메뉴 선택으로 돌아갑니다.");
-        } catch (DateTimeParseException e) {
-            System.out.println("잘못된 날짜 형식입니다. (yyyy-MM-dd). 메뉴 선택으로 돌아갑니다.");
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
 
-    private static void handleStaffRestaurantShow(DataInputStream dis, DataOutputStream dos, UserType userType) {
+            AvailableRestaurantResponseDTO dto = new AvailableRestaurantResponseDTO(body);
 
-        boolean restaurantSelection = true;
+            System.out.println("\n===== [ 이용 가능한 식당 목록 ] =====");
 
-        try {
-            while (restaurantSelection) {
-                System.out.println("===== 식당 선택 =====");
-                System.out.println("식당을 선택하세요:");
-                System.out.println("1. 교직원식당");
-                System.out.println("2. 분식당");
-                System.out.print("번호 입력: ");
+            System.out.println("----------------------------------------------------------------------");
+            System.out.printf("%-5s | %-15s | %s\n", "ID", "식당 이름", "설명");
+            System.out.println("----------------------------------------------------------------------");
 
-                int restaurantChoice = sc.nextInt();
-
-                Long selectedRestaurantId = 0L;
-                // 식당 ID 설정
-                switch (restaurantChoice) {
-                    case 1 -> selectedRestaurantId = 2L; // 교직원식당 ID
-                    case 2 -> selectedRestaurantId = 3L; // 분식당 ID
-                    default -> {
-                        System.out.println("잘못된 선택입니다.");
-                        continue;
-                    }
-                }
-
-                // 선택한 식당에 대한 처리
-                if (restaurantChoice == 1) {
-                    // 교직원식당 처리
-                    handleSimpleRestaurant(dis, dos, selectedRestaurantId, userType);
-                } else {
-                    // 분식당 처리
-                    handleSnackRestaurant(dis, dos, selectedRestaurantId, userType);
-                }
-
-                restaurantSelection = false;
-
+            for (AvailableRestaurant r : dto.getList()) {
+                System.out.printf("%-5d | %-15s | %s\n",
+                        r.getId(),
+                        r.getName(),
+                        r.getDescription());
             }
+            System.out.println("----------------------------------------------------------------------");
+            System.out.println("선택할 식당의 ID를 입력하세요. : ");
+
+            int selectedRestaurantId = sc.nextInt();
+
+            sc.nextLine();
+
+            // 선택한 식당에 대한 처리
+            if (selectedRestaurantId != 3) {
+                // 교직원식당, 학생 식당 처리
+                handleSimpleRestaurant(dis, dos, selectedRestaurantId);
+            } else {
+                // 분식당 처리
+                handleSnackRestaurant(dis, dos, selectedRestaurantId);
+            }
+
         } catch (NumberFormatException e) {
             System.out.println("잘못된 숫자 형식입니다. 메뉴 선택으로 돌아갑니다.");
         } catch (DateTimeParseException e) {
@@ -479,17 +438,16 @@ public class Main {
     }
 
     private static void handleSimpleRestaurant(DataInputStream dis, DataOutputStream dos,
-                                               long restaurantId, UserType userType) throws Exception {
-        String restaurantName = restaurantId == 2L ? "교직원식당" : "학식당";
-
-        // 프로토콜: 0x01(요청) + 0x12(식당별 메뉴 요청) + Length + Body(식당 ID)
+                                               long restaurantId) throws Exception {
+        // 0x01(요청) 0x12(식당별 메뉴 요청) 길이 바디 (식당 ID)
         byte[] restIdBytes = Utils.longToBytes(restaurantId);
         dos.writeByte(HeaderType.REQUEST.getValue()); // 0x01
         dos.writeByte((byte) 0x12); // 식당별 메뉴 요청
+        dos.write(intToBytes(restIdBytes.length));
         dos.write(restIdBytes);
         dos.flush();
 
-        // 응답 받기: Header(6 bytes) = Type(1) + Code(1) + Length(4)
+        // 응답 받기
         byte[] header = new byte[6];
         dis.readFully(header);
         byte type = header[0];
@@ -500,43 +458,54 @@ public class Main {
         if (len > 0) {
             body = new byte[len];
             dis.readFully(body);
-        }
-
-        // 응답 검증: 0x02(응답) + 0x12(메뉴 데이터 반환)
-        if (type != HeaderType.RESPONSE.getValue() || code != (byte) 0x12) {
-            System.out.println("메뉴 조회 실패");
-            return;
-        }
-
-        //서버의 MenuResponseDTO 클래스 사용
-        MenuResponseDTO menuDTO = (body != null && body.length > 0)
-                ? new MenuResponseDTO(body)
-                : null;
-
-        if (menuDTO == null) {
-            System.out.println("메뉴 정보를 불러올 수 없습니다.");
+        } else {
+            System.out.println("메뉴가 없습니다.");
             return;
         }
 
         // 메뉴 정보 출력
-        System.out.println("\n===== 오늘의 " + restaurantName + " =====");
+        UserMenuListResponseDTO dto = new UserMenuListResponseDTO(body);
+        List<MenuDTO> menuList = dto.getList();
 
-        for (int i = 0; i < menuDTO.getMenuList().size(); i++) {
-            System.out.println("메뉴 ID : " + menuDTO.getMenuList().get(i).getMenuId());
-            System.out.println("메뉴명: " + menuDTO.getMenuList().get(i).getMenuName());
-
-            if (userType.equals(UserType.STUDENT))
-                System.out.println("가격: " + menuDTO.getMenuList().get(i).getStudentPrice() + "원");
-            else
-                System.out.println("가격: " + menuDTO.getMenuList().get(i).getStandardPrice() + "원");
-
+        System.out.println("===== 메뉴 목록 =====");
+        for (int i = 0; i < menuList.size(); i++) {
+            MenuDTO menu = menuList.get(i);
+            System.out.printf("[%d] %s | %d원 | 수량:%d | %s\n",
+                    (i + 1),
+                    menu.getMenuName(),
+                    menu.getPrice(),
+                    menu.getAmount(),
+                    menu.isDaily() ? "오늘의 메뉴" : "상시 메뉴"
+            );
         }
-        System.out.print("메뉴 ID를 입력하세요 : ");
 
-        long selectedMenu = sc.nextLong();
+        System.out.print("메뉴 번호를 입력하세요 : ");
 
-        // 메뉴 이미지 다운로드 - 프로토콜 0x01 + 0x21
-        saveImage(dos, dis, selectedMenu); // 서버 DTO에서 메뉴 ID 가져오기
+        long selectedMenuId = 0;
+        int menuPrice = 0;
+
+        try {
+            // 메뉴 순서 번호 입력 받기
+            int choice = Integer.parseInt(sc.nextLine());
+
+            if (choice < 1 || choice > menuList.size()) {
+                System.out.println("잘못된 메뉴 번호입니다.");
+                return;
+            }
+
+            // 메뉴 뽑아오기
+            MenuDTO selectedMenu = menuList.get(choice - 1);
+
+            selectedMenuId = selectedMenu.getId(); // 실제 서버로 보낼 ID
+            menuPrice = selectedMenu.getPrice();   // 결제 금액
+
+        } catch (NumberFormatException e) {
+            System.out.println("숫자를 입력해주세요.");
+            return;
+        }
+
+        // 메뉴 이미지 다운로드
+        saveImage(dos, dis, selectedMenuId);
 
         // 결제 여부 선택
         boolean paymentChoice = true;
@@ -546,6 +515,7 @@ public class Main {
             System.out.print("번호 입력: ");
 
             int choice;
+
             try {
                 choice = Integer.parseInt(sc.nextLine());
             } catch (NumberFormatException e) {
@@ -554,11 +524,8 @@ public class Main {
             }
 
             if (choice == 1) {
-                // StaffPaymentUI 호출
-                if(userType == UserType.STAFF)
-                    StaffPaymentUI.processPayment(dis, dos, selectedMenu);
-                else
-                    StudentPaymentUI.processPayment(dis, dos, selectedMenu);
+                // PaymentUI 호출
+                UserPaymentUI.processPayment(dis, dos, selectedMenuId, menuPrice);
                 paymentChoice = false;
             } else if (choice == 2) {
                 System.out.println("처음으로 돌아갑니다.");
@@ -570,10 +537,9 @@ public class Main {
     }
 
     private static void handleSnackRestaurant(DataInputStream dis, DataOutputStream dos,
-                                              long restaurantId, UserType userType) throws Exception {
-        String restaurantName = "분식당";
+                                              long restaurantId) throws Exception {
 
-        // 프로토콜: 0x01(요청) + 0x12(식당별 메뉴 요청) + Length + Body(식당 ID)
+        // 0x01(요청) 0x12(식당별 메뉴 요청) 길이 바디 (식당 ID)
         byte[] restIdBytes = Utils.longToBytes(restaurantId);
         dos.writeByte(HeaderType.REQUEST.getValue()); // 0x01
         dos.writeByte((byte) 0x12); // 식당별 메뉴 요청
@@ -581,7 +547,7 @@ public class Main {
         dos.write(restIdBytes);
         dos.flush();
 
-        // 응답 받기: Header(6 bytes) = Type(1) + Code(1) + Length(4)
+        // 응답 받기
         byte[] header = new byte[6];
         dis.readFully(header);
         byte type = header[0];
@@ -592,39 +558,54 @@ public class Main {
         if (len > 0) {
             body = new byte[len];
             dis.readFully(body);
-        }
-
-        // 메뉴 선택
-        //서버의 MenuResponseDTO 클래스 사용
-        MenuResponseDTO menuDTO = (body != null && body.length > 0)
-                ? new MenuResponseDTO(body)
-                : null;
-
-        if (menuDTO == null) {
-            System.out.println("메뉴 정보를 불러올 수 없습니다.");
+        } else {
+            System.out.println("메뉴가 없습니다.");
             return;
         }
 
         // 메뉴 정보 출력
-        System.out.println("\n===== 오늘의 " + restaurantName + " =====");
+        UserMenuListResponseDTO dto = new UserMenuListResponseDTO(body);
+        List<MenuDTO> menuList = dto.getList();
 
-        for (int i = 0; i < menuDTO.getMenuList().size(); i++) {
-            System.out.println("메뉴 ID : " + menuDTO.getMenuList().get(i).getMenuId());
-            System.out.println("메뉴명: " + menuDTO.getMenuList().get(i).getMenuName());
-
-            if (userType.equals(UserType.STUDENT))
-                System.out.println("가격: " + menuDTO.getMenuList().get(i).getStudentPrice() + "원");
-            else
-                System.out.println("가격: " + menuDTO.getMenuList().get(i).getStandardPrice() + "원");
-
+        System.out.println("===== 메뉴 목록 =====");
+        for (int i = 0; i < menuList.size(); i++) {
+            MenuDTO menu = menuList.get(i);
+            System.out.printf("[%d] %s | %d원 | 수량:%d | %s\n",
+                    (i + 1),
+                    menu.getMenuName(),
+                    menu.getPrice(),
+                    menu.getAmount(),
+                    menu.isDaily() ? "오늘의 메뉴" : "상시 메뉴"
+            );
         }
 
-        System.out.print("메뉴 ID를 입력하세요 : ");
+        System.out.print("메뉴 번호를 입력하세요 : ");
 
-        long selectedMenu = sc.nextLong();
+        long selectedMenuId = 0;
+        int menuPrice = 0;
+
+        try {
+            // 메뉴 순서 번호 입력 받기
+            int choice = Integer.parseInt(sc.nextLine());
+
+            if (choice < 1 || choice > menuList.size()) {
+                System.out.println("잘못된 메뉴 번호입니다.");
+                return;
+            }
+
+            // 순서 번호로 메뉴에서 가져오기
+            MenuDTO selectedMenu = menuList.get(choice - 1);
+
+            selectedMenuId = selectedMenu.getId(); // 실제 서버로 보낼 ID
+            menuPrice = selectedMenu.getPrice();   // 결제 금액
+
+        } catch (NumberFormatException e) {
+            System.out.println("숫자를 입력해주세요.");
+            return;
+        }
 
         // 메뉴 이미지 다운로드
-        saveImage(dos, dis, selectedMenu);
+        saveImage(dos, dis, selectedMenuId);
 
         // 결제 여부 선택
         boolean paymentChoice = true;
@@ -642,11 +623,8 @@ public class Main {
             }
 
             if (choice == 1) {
-                // StaffPaymentUI 호출
-                if(userType == UserType.STAFF)
-                    StaffPaymentUI.processPayment(dis, dos, selectedMenu);
-                else
-                    StudentPaymentUI.processPayment(dis, dos, selectedMenu);
+                // UserPaymentUI 호출
+                UserPaymentUI.processPayment(dis, dos, selectedMenuId, menuPrice);
 
                 paymentChoice = false;
             } else if (choice == 2) {
@@ -659,7 +637,7 @@ public class Main {
     }
 
     private static void saveImage(DataOutputStream dos, DataInputStream dis, Long menuId) throws IOException {
-        System.out.println("입력한 메뉴 이미지 다운로드");
+        System.out.println("\n입력한 메뉴 이미지 다운로드");
 
         dos.writeByte(HeaderType.REQUEST.getValue());
         dos.writeByte((byte) 0x21); //사진 다운로드
@@ -673,7 +651,7 @@ public class Main {
         byte code = header[1];
         int len = Utils.bytesToInt(header, 2);
         byte[] data = new byte[len];
-
+        dis.readFully(data);
         if (code != 0x21 || data.length == 0) {
             System.out.println(">> 수신된 이미지 데이터가 없습니다.");
             return;
@@ -826,16 +804,10 @@ public class Main {
                         handleMenuRegistration(dis, dos);
                     }
                     case 3 -> {
-
                         handleCouponAdd(dis, dos);
-                        if (type == HeaderType.RESPONSE.getValue() && code == (byte) 0x81) {
-                            //handleMenuRegistration(dis, dos);
-                        } else {
-                            System.out.println("식당 목록을 불러오는데 실패했습니다. Code: " + code);
-                        }
                     }
 
-                    case 2, 3, 4, 5, 7 -> {
+                    case 2, 4, 5, 7 -> {
                         System.out.println("준비 중인 기능입니다.");
                     }
                     case 6 -> {
@@ -971,9 +943,7 @@ public class Main {
 
     private static void handleCouponAdd(DataInputStream dis, DataOutputStream dos) throws IOException {
         try {
-            // ============================================================
-            // 1. 식당 선택 & 금액권 모드 진입
-            // ============================================================
+            // 식당 선택
             System.out.println("\n>> 쿠폰을 등록할 식당을 선택하세요.");
             RestaurantName[] restaurants = RestaurantName.values();
 
@@ -981,40 +951,19 @@ public class Main {
             for (RestaurantName name : restaurants) {
                 System.out.printf("[%d] %s\n", i++, name.getValue());
             }
-            System.out.println("[0] 금액권 (식당 지정 후 금액 입력)"); // 0번 옵션 추가
-            System.out.print("선택: ");
 
             int firstChoice = Integer.parseInt(sc.nextLine());
 
             RestaurantName selectedRestaurant = null;
-            boolean isAmountCouponMode = false;
 
-            if (firstChoice == 0) {
-                // [0] 금액권을 선택한 경우 -> 식당을 다시 지정해야 함 (서버에 라인을 알려주기 위해)
-                isAmountCouponMode = true;
-                System.out.println("\n>> 어느 식당의 금액권을 발행하시겠습니까?");
-                int j = 1;
-                for (RestaurantName name : restaurants) {
-                    System.out.printf("[%d] %s\n", j++, name.getValue());
-                }
-                System.out.print("식당 선택: ");
-                int restIndex = Integer.parseInt(sc.nextLine()) - 1;
-
-                if (restIndex < 0 || restIndex >= restaurants.length) {
-                    System.out.println(">> [오류] 잘못된 선택입니다.");
-                    return;
-                }
-                selectedRestaurant = restaurants[restIndex];
-
-            } else {
-                // [1~3] 특정 식당을 바로 선택한 경우
-                int restIndex = firstChoice - 1;
-                if (restIndex < 0 || restIndex >= restaurants.length) {
-                    System.out.println(">> [오류] 잘못된 선택입니다.");
-                    return;
-                }
-                selectedRestaurant = restaurants[restIndex];
+            // 식당 선택
+            int restIndex = firstChoice - 1;
+            if (restIndex < 0 || restIndex >= restaurants.length) {
+                System.out.println(">> [오류] 잘못된 선택입니다.");
+                return;
             }
+            selectedRestaurant = restaurants[restIndex];
+
 
             // ============================================================
             // 2. 서버에 식당 정보 전송 (컨텍스트 설정)
@@ -1045,67 +994,47 @@ public class Main {
             Long finalMenuId = 0L;
             int finalAmount = 0;
 
-            if (isAmountCouponMode) {
-                // --- A. 금액권 모드 (이미 0번을 골라서 들어옴) ---
-                System.out.println("-----------------------------------------------");
-                System.out.printf(">> [%s] 금액권 생성\n", selectedRestaurant.getValue());
-                System.out.print(">> 발행할 금액(원)을 입력하세요: ");
-                try {
-                    finalAmount = Integer.parseInt(sc.nextLine());
-                    if (finalAmount <= 0) {
-                        System.out.println(">> [오류] 금액은 0보다 커야 합니다.");
-                        return;
-                    }
-                    finalMenuId = 0L; // 금액권은 ID 0
-                } catch (NumberFormatException e) {
-                    System.out.println(">> [오류] 숫자를 입력해주세요.");
-                    return;
-                }
-
-            } else {
-                // --- B. 일반 메뉴 선택 모드 ---
-                if (responseDTO.getMenuList().isEmpty()) {
-                    System.out.println(">> 등록된 메뉴가 없습니다.");
-                    return;
-                }
-
-                System.out.println("\n----------------- [메뉴 목록] -----------------");
-                for (MenuInfoDTO menu : responseDTO.getMenuList()) {
-                    String dateInfo = menu.isDailyMenu() ? (" [" + menu.getServedDate() + "]") : " [상시]";
-                    System.out.printf("[%d] %s | %d원%s\n",
-                            menu.getMenuId(), menu.getMenuName(), menu.getPrice(), dateInfo);
-                }
-                System.out.println("-----------------------------------------------");
-
-                System.out.print(">> 쿠폰으로 만들 메뉴 번호를 입력하세요: ");
-                try {
-                    finalMenuId = Long.parseLong(sc.nextLine());
-
-                    // 유효한 메뉴인지 확인 (스트림 대신 for문 사용)
-                    boolean exists = false;
-                    for (MenuInfoDTO m : responseDTO.getMenuList()) {
-                        if (m.getMenuId().equals(finalMenuId)) {
-                            exists = true;
-                            break;
-                        }
-                    }
-
-                    if (!exists) {
-                        System.out.println(">> [오류] 목록에 없는 메뉴 번호입니다.");
-                        return;
-                    }
-
-                    finalAmount = 0; // 메뉴권은 금액 0 (서버 가격 정책 따름)
-
-                } catch (NumberFormatException e) {
-                    System.out.println(">> [오류] 숫자를 입력해주세요.");
-                    return;
-                }
+            // --- B. 일반 메뉴 선택 모드 ---
+            if (responseDTO.getMenuList().isEmpty()) {
+                System.out.println(">> 등록된 메뉴가 없습니다.");
+                return;
             }
 
-            // ============================================================
-            // 4. 쿠폰 생성 요청 전송 (ID, Amount만 전송)
-            // ============================================================
+            System.out.println("\n----------------- [메뉴 목록] -----------------");
+            for (MenuInfoDTO menu : responseDTO.getMenuList()) {
+                String dateInfo = menu.isDailyMenu() ? (" [" + menu.getServedDate() + "]") : " [상시]";
+                System.out.printf("[%d] %s | %d원%s\n",
+                        menu.getMenuId(), menu.getMenuName(), menu.getPrice(), dateInfo);
+            }
+            System.out.println("-----------------------------------------------");
+
+            System.out.print(">> 쿠폰으로 만들 메뉴 번호를 입력하세요: ");
+            try {
+                finalMenuId = Long.parseLong(sc.nextLine());
+
+                // 유효한 메뉴인지 확인 (스트림 대신 for문 사용)
+                boolean exists = false;
+                for (MenuInfoDTO m : responseDTO.getMenuList()) {
+                    if (m.getMenuId().equals(finalMenuId)) {
+                        exists = true;
+                        break;
+                    }
+                }
+
+                if (!exists) {
+                    System.out.println(">> [오류] 목록에 없는 메뉴 번호입니다.");
+                    return;
+                }
+
+                finalAmount = 0; // 메뉴권은 금액 0 (서버 가격 정책 따름)
+
+            } catch (NumberFormatException e) {
+                System.out.println(">> [오류] 숫자를 입력해주세요.");
+                return;
+            }
+
+
+            // 쿠폰 생성 요청 전송 (ID, Amount만 전송)
             CouponRegisterRequestDTO registerReq = new CouponRegisterRequestDTO(finalMenuId, finalAmount);
             dos.write(registerReq.toBytes());
             dos.flush();

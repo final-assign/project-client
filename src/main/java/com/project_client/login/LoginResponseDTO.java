@@ -1,7 +1,6 @@
 package com.project_client.login;
 
 import com.project_client.user.UserType;
-import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
