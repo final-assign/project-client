@@ -38,7 +38,7 @@ public class Main {
         }
     }
 
-    private final static String HOST = "172.30.112.118";
+    private final static String HOST = "localhost";
     private static final int PORT = 5000;
     private static final Scanner sc = new Scanner(System.in);
 
@@ -569,11 +569,10 @@ public class Main {
         System.out.println("===== 메뉴 목록 =====");
         for (int i = 0; i < menuList.size(); i++) {
             MenuDTO menu = menuList.get(i);
-            System.out.printf("[%d] %s | %d원 | 수량:%d | %s\n",
+            System.out.printf("[%d] %s | %d원 | %s\n",
                     (i + 1),
                     menu.getMenuName(),
                     menu.getPrice(),
-                    menu.getAmount(),
                     menu.isDaily() ? "오늘의 메뉴" : "상시 메뉴"
             );
         }

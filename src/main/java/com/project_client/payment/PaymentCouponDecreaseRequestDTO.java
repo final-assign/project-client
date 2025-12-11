@@ -13,6 +13,7 @@ import lombok.ToString;
 @RequiredArgsConstructor
 public class PaymentCouponDecreaseRequestDTO {
     private final long couponId;
+    //쿠폰 ID X 메뉴 ID O
 
     public byte[] toBytes() {
             // id(long, 8byte)

@@ -112,7 +112,6 @@ public class UserPaymentUI {
             dos.flush();
 
             byte[] header = new byte[6];
-            System.out.println("lock");
             dis.readFully(header);
             byte code = header[1];
             int bodyLength = Utils.bytesToInt(header, 2);
@@ -132,7 +131,7 @@ public class UserPaymentUI {
             System.out.println("선택한 메뉴의 현재 쿠폰 개수 : " + responseDTO.getCount());
 
             PaymentCouponDecreaseRequestDTO decreaseRequestDTO = PaymentCouponDecreaseRequestDTO.builder()
-                    .couponId(responseDTO.getCouponId())
+                    .couponId(selectedMenuId)
                     .build();
 
             dos.write(decreaseRequestDTO.toBytes());
