@@ -8,7 +8,7 @@ import java.io.DataOutputStream;
 
 import static com.project_client.Main.sc;
 
-public class StudentMenuUI {
+public class StudentMenuInquiryUI {
 
     private static void StudentMenuInquiryUI(DataInputStream dis, DataOutputStream dos) {
         try {
@@ -154,8 +154,8 @@ public class StudentMenuUI {
             }
 
             if (choice == 1) {
-                // 결제 UI 호출
-                processPayment(dis, dos, menuDTO); // 서버의 결제UI 클래스 메서드 호출 예정
+                // StaffPaymentUI 호출
+                StudentPaymentUI.processPayment(dis, dos, selectedMenu);
                 paymentChoice = false;
             } else if (choice == 2) {
                 System.out.println("처음으로 돌아갑니다.");
@@ -277,13 +277,8 @@ public class StudentMenuUI {
             }
 
             if (choice == 1) {
-                // 결제 UI 호출 (추후 구현 예정)
-                MenuResponseDTO paymentDTO = new MenuResponseDTO(); // 임시 변환
-                paymentDTO.setMenuId(selectedMenu.getMenuId());
-                paymentDTO.setMenuName(selectedMenu.getMenuName());
-                paymentDTO.setPrice(selectedMenu.getPrice());
-
-                processPayment(dis, dos, paymentDTO); // 서버의 PaymentUI 클래스 메서드 호출 예정
+                // StaffPaymentUI 호출
+                StudentPaymentUI.processPayment(dis, dos, selectedMenu);
                 paymentChoice = false;
             } else if (choice == 2) {
                 System.out.println("처음으로 돌아갑니다.");
